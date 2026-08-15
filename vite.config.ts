@@ -1,17 +1,26 @@
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
+import { nitro } from "nitro/vite";
 
 export default defineConfig({
   vite: {
     base: "/happy-birthday-smrithiii-mowll/",
+    plugins: [
+      nitro({
+        preset: "node-server",
+      }),
+    ],
   },
 
   tanstackStart: {
-    spa: {
-      enabled: true,
+    server: {
+      entry: "server",
+    },
 
-      prerender: {
-        outputPath: "/index.html",
-      },
+    prerender: {
+      enabled: true,
+      autoSubfolderIndex: true,
+      autoStaticPathsDiscovery: true,
+      crawlLinks: true,
     },
   },
 });
