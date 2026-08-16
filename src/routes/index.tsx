@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Happy Birthday, My Love" },
+      { title: "Happy Birthday, My Smrithiiiiiiiiiii" },
       { name: "description", content: "A night by the sea, under the moon, with fireworks just for you." },
     ],
   }),
