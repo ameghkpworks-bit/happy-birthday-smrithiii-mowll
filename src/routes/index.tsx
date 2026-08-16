@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Happy Birthday, My Smrithiiiiiiiiiii" },
+      { title: "Happy Birthday Smrithiiiiiiiiiii" },
       { name: "description", content: "A night by the sea, under the moon, with fireworks just for you." },
     ],
   }),
@@ -14,13 +14,7 @@ export const Route = createFileRoute("/")({
 // 💖 Edit these to personalize your gift
 const HER_NAME = "Smrithiiiiiiiiiii";
 const YOUR_NAME = "Yours, forever";
-const HEADLINE = "Happy Birthday, my moon, my sea, my every spark.";
-const VERSES = [
-  "The stars rehearsed all year — just to shine tonight for you.",
-  "The moon borrows her glow from the way you smile.",
-  "Every wave that touches the shore is whispering your name.",
-  "And every firework? A small, loud way of saying I love you.",
-];
+const HEADLINE = "Happy Birthday Smrithiiiiiiiiiii ";
 const WISH = "Make a wish, my love. The sea is listening.";
 
 
