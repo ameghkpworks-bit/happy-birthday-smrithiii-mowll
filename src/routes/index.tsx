@@ -36,8 +36,7 @@ function Index() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Page is visible immediately — no button required
-  const [revealed] = useState(true);
+  const [revealed, setRevealed] = useState(false);
   const [message, setMessage] = useState("");
 
   const fullMessage = HEADLINE;
@@ -46,6 +45,8 @@ function Index() {
   // Birthday message typing animation
   // --------------------------------------------------
   useEffect(() => {
+    if (!revealed) return;
+
     let i = 0;
 
     const id = setInterval(() => {
@@ -59,54 +60,7 @@ function Index() {
     }, 55);
 
     return () => clearInterval(id);
-  }, [fullMessage]);
-
-  // --------------------------------------------------
-  // MUSIC
-  //
-  // Try autoplay immediately.
-  //
-  // Safari/iPhone may block autoplay until the user
-  // interacts with the page. In that case, the first
-  // tap/click anywhere starts the music.
-  // --------------------------------------------------
-  useEffect(() => {
-    const audio = audioRef.current;
-
-    if (!audio) return;
-
-    audio.loop = true;
-
-    const startAudio = async () => {
-      try {
-        await audio.play();
-
-        // Music successfully started.
-        // Remove the fallback listeners.
-        window.removeEventListener("pointerdown", startAudio);
-        window.removeEventListener("touchstart", startAudio);
-        window.removeEventListener("click", startAudio);
-      } catch {
-        // Browser blocked autoplay.
-        // The listeners above will try again after
-        // the user's first interaction.
-      }
-    };
-
-    // Try to start automatically.
-    startAudio();
-
-    // Safari / iPhone fallback.
-    window.addEventListener("pointerdown", startAudio);
-    window.addEventListener("touchstart", startAudio);
-    window.addEventListener("click", startAudio);
-
-    return () => {
-      window.removeEventListener("pointerdown", startAudio);
-      window.removeEventListener("touchstart", startAudio);
-      window.removeEventListener("click", startAudio);
-    };
-  }, []);
+  }, [revealed, fullMessage]);
 
   // --------------------------------------------------
   // Stars, moon, sea and fireworks animation
@@ -187,9 +141,7 @@ function Index() {
 
     let lastLaunch = 0;
 
-    // --------------------------------------------------
-    // Click / tap anywhere = launch a firework
-    // --------------------------------------------------
+    // Click anywhere on canvas = launch firework
     const onClick = (e: MouseEvent) => {
       launch(e.clientX, e.clientY);
     };
@@ -507,7 +459,7 @@ function Index() {
         ctx.arc(r.x, r.y, 2, 0, Math.PI * 2);
         ctx.fill();
 
-        // Trail
+        // Rocket trail
         ctx.strokeStyle = `hsla(${r.hue},100%,75%,0.4)`;
 
         ctx.beginPath();
@@ -569,11 +521,32 @@ function Index() {
     };
   }, []);
 
+  // --------------------------------------------------
+  // Open Gift + Play Music
+  // --------------------------------------------------
+  const openGift = async () => {
+    setRevealed(true);
+
+    const audio = audioRef.current;
+
+    if (!audio) return;
+
+    try {
+      audio.currentTime = 0;
+      await audio.play();
+    } catch (error) {
+      console.log(
+        "Audio playback was blocked by the browser:",
+        error,
+      );
+    }
+  };
+
   return (
     <main className="relative h-screen w-screen overflow-hidden bg-black font-serif text-white">
       {/* --------------------------------------------------
           Birthday music
-          -------------------------------------------------- */}
+      -------------------------------------------------- */}
       <audio
         ref={audioRef}
         src={fireAudioUrl}
@@ -583,17 +556,30 @@ function Index() {
       />
 
       {/* --------------------------------------------------
-          Background animation
-          -------------------------------------------------- */}
+          Background canvas
+      -------------------------------------------------- */}
       <canvas
         ref={canvasRef}
         className="absolute inset-0 h-full w-full"
       />
 
       {/* --------------------------------------------------
-          Birthday content
-          Shows automatically — no button
-          -------------------------------------------------- */}
+          Open Gift button
+      -------------------------------------------------- */}
+      {!revealed && (
+        <div className="pointer-events-none absolute inset-0 flex items-end justify-center pb-24">
+          <button
+            onClick={openGift}
+            className="pointer-events-auto rounded-full border border-white/30 bg-white/5 px-8 py-3 text-sm tracking-[0.3em] backdrop-blur-md transition hover:bg-white/15"
+          >
+            Open the Gift
+          </button>
+        </div>
+      )}
+
+      {/* --------------------------------------------------
+          Birthday message
+      -------------------------------------------------- */}
       {revealed && (
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-6 text-center">
           <p className="mb-3 text-xs tracking-[0.5em] text-white/60">
@@ -613,9 +599,9 @@ function Index() {
             — {YOUR_NAME}
           </p>
 
-          {/* Instruction */}
+          {/* Click instruction */}
           <p className="mt-10 text-[10px] tracking-[0.4em] text-white/40">
-            TAP ANYWHERE TO LIGHT THE SKY
+            CLICK ANYWHERE TO LIGHT THE SKY
           </p>
         </div>
       )}
