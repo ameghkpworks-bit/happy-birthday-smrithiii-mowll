@@ -7,7 +7,7 @@ export default defineConfig({
 
     plugins: [
       nitro({
-        preset: "github-pages",
+        preset: "node-server",
       }),
     ],
   },
@@ -15,28 +15,17 @@ export default defineConfig({
   tanstackStart: {
     spa: {
       enabled: true,
+
+      prerender: {
+        outputPath: "/index.html",
+        crawlLinks: false,
+        retryCount: 0,
+      },
     },
 
     server: {
       entry: "server",
     },
-
-    prerender: {
-      enabled: true,
-      autoSubfolderIndex: true,
-      autoStaticPathsDiscovery: true,
-      crawlLinks: true,
-      failOnError: true,
-    },
-
-    pages: [
-      {
-        path: "/",
-        prerender: {
-          enabled: true,
-          outputPath: "/index.html",
-        },
-      },
-    ],
   },
 });
+
