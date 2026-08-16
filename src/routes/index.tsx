@@ -15,6 +15,13 @@ export const Route = createFileRoute("/")({
 const HER_NAME = "Smrithiiiiiiiiiii";
 const YOUR_NAME = "Yours, forever";
 const HEADLINE = "Happy Birthday, my moon, my sea, my every spark.";
+const VERSES = [
+  "The stars rehearsed all year — just to shine tonight for you.",
+  "The moon borrows her glow from the way you smile.",
+  "Every wave that touches the shore is whispering your name.",
+  "And every firework? A small, loud way of saying I love you.",
+];
+const WISH = "Make a wish, my love. The sea is listening.";
 
 
 
@@ -26,70 +33,10 @@ type Firework = {
 
 function Index() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const audioCtxRef = useRef<AudioContext | null>(null);
-  const noiseBufferRef = useRef<AudioBuffer | null>(null);
-  const fireAudioRef = useRef<HTMLAudioElement | null>(null);
-  const audioUnlockedRef = useRef(false);
   const [revealed, setRevealed] = useState(false);
   const [message, setMessage] = useState("");
-  const [signatureShown, setSignatureShown] = useState(false);
+  const [versesShown, setVersesShown] = useState(0);
   const fullMessage = HEADLINE;
-
-  // Mobile browsers (iOS Safari especially) only allow audio to start as a
-  // *direct, synchronous* result of a user tap/click. This unlocks both the
-  // Web Audio context (for the whoosh/boom effects) and the fire.mp3
-  // ambience the first time the person interacts with the page.
-  const unlockAudio = () => {
-    // Web Audio context for the synthesized whoosh/boom
-    if (!audioCtxRef.current) {
-      const Ctx = window.AudioContext || (window as any).webkitAudioContext;
-      const ctx = new Ctx();
-      audioCtxRef.current = ctx;
-      const bufferSize = ctx.sampleRate * 0.6;
-      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-      const data = buffer.getChannelData(0);
-      for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
-      noiseBufferRef.current = buffer;
-
-      // Play a silent blip immediately — this is the classic iOS "unlock"
-      // trick that gets the context out of the suspended state reliably.
-      const silence = ctx.createBuffer(1, 1, ctx.sampleRate);
-      const src = ctx.createBufferSource();
-      src.buffer = silence;
-      src.connect(ctx.destination);
-      src.start(0);
-    }
-    if (audioCtxRef.current.state === "suspended") {
-      audioCtxRef.current.resume().catch(() => {});
-    }
-
-    // The uploaded fire.mp3 ambience
-    const audioEl = fireAudioRef.current;
-    if (audioEl && audioUnlockedRef.current === false) {
-      audioUnlockedRef.current = true;
-      audioEl.volume = 0.4;
-      const p = audioEl.play();
-      if (p && typeof p.catch === "function") p.catch(() => {});
-    }
-
-    return audioCtxRef.current;
-  };
-
-  // Belt-and-suspenders: some mobile browsers deliver the first tap as a
-  // touch/pointer event before (or instead of) a synthetic click, so listen
-  // once at the document level too, in addition to the explicit handlers
-  // on the button and canvas below.
-  useEffect(() => {
-    const unlockOnce = () => {
-      unlockAudio();
-    };
-    document.addEventListener("pointerdown", unlockOnce, { once: true, capture: true });
-    document.addEventListener("touchend", unlockOnce, { once: true, capture: true });
-    return () => {
-      document.removeEventListener("pointerdown", unlockOnce, { capture: true } as any);
-      document.removeEventListener("touchend", unlockOnce, { capture: true } as any);
-    };
-  }, []);
 
 
   useEffect(() => {
@@ -100,7 +47,9 @@ function Index() {
       setMessage(fullMessage.slice(0, i));
       if (i >= fullMessage.length) {
         clearInterval(id);
-        setTimeout(() => setSignatureShown(true), 700);
+        VERSES.forEach((_, idx) => {
+          setTimeout(() => setVersesShown((v) => Math.max(v, idx + 1)), 700 + idx * 1400);
+        });
       }
     }, 55);
     return () => clearInterval(id);
@@ -125,61 +74,6 @@ function Index() {
     const fireworks: Firework[] = [];
     const rockets: { x: number; y: number; vy: number; tx: number; ty: number; hue: number }[] = [];
 
-    // short rising "whoosh" as a rocket launches
-    const playWhoosh = () => {
-      const ctx = audioCtxRef.current;
-      if (!ctx || !noiseBufferRef.current) return;
-      const now = ctx.currentTime;
-      const noise = ctx.createBufferSource();
-      noise.buffer = noiseBufferRef.current;
-      const filter = ctx.createBiquadFilter();
-      filter.type = "bandpass";
-      filter.frequency.setValueAtTime(900, now);
-      filter.frequency.exponentialRampToValueAtTime(3200, now + 0.5);
-      filter.Q.value = 0.9;
-      const gain = ctx.createGain();
-      gain.gain.setValueAtTime(0.0001, now);
-      gain.gain.exponentialRampToValueAtTime(0.06, now + 0.08);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.5);
-      noise.connect(filter).connect(gain).connect(ctx.destination);
-      noise.start(now);
-      noise.stop(now + 0.55);
-    };
-
-    // deep crackling "boom" as a firework bursts
-    const playBoom = () => {
-      const ctx = audioCtxRef.current;
-      if (!ctx || !noiseBufferRef.current) return;
-      const now = ctx.currentTime;
-
-      // crackle
-      const noise = ctx.createBufferSource();
-      noise.buffer = noiseBufferRef.current;
-      const noiseFilter = ctx.createBiquadFilter();
-      noiseFilter.type = "bandpass";
-      noiseFilter.frequency.value = 1600 + Math.random() * 1000;
-      noiseFilter.Q.value = 0.6;
-      const noiseGain = ctx.createGain();
-      const crackleLevel = 0.18 + Math.random() * 0.08;
-      noiseGain.gain.setValueAtTime(crackleLevel, now);
-      noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.6 + Math.random() * 0.3);
-      noise.connect(noiseFilter).connect(noiseGain).connect(ctx.destination);
-      noise.start(now);
-      noise.stop(now + 1);
-
-      // low thump
-      const osc = ctx.createOscillator();
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(130 + Math.random() * 20, now);
-      osc.frequency.exponentialRampToValueAtTime(35, now + 0.35);
-      const oscGain = ctx.createGain();
-      oscGain.gain.setValueAtTime(0.3, now);
-      oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
-      osc.connect(oscGain).connect(ctx.destination);
-      osc.start(now);
-      osc.stop(now + 0.4);
-    };
-
     const launch = (x?: number, y?: number) => {
       const tx = x ?? Math.random() * w;
       const ty = y ?? h * (0.15 + Math.random() * 0.35);
@@ -191,7 +85,6 @@ function Index() {
         ty,
         hue: Math.floor(Math.random() * 360),
       });
-      playWhoosh();
     };
 
     const explode = (x: number, y: number, hue: number) => {
@@ -209,22 +102,11 @@ function Index() {
         });
       }
       fireworks.push({ particles });
-      playBoom();
     };
 
     let lastLaunch = 0;
-    const onClick = (e: MouseEvent) => {
-      unlockAudio();
-      launch(e.clientX, e.clientY);
-    };
+    const onClick = (e: MouseEvent) => launch(e.clientX, e.clientY);
     canvas.addEventListener("click", onClick);
-    const onTouch = (e: TouchEvent) => {
-      e.preventDefault(); // stop the synthetic click that would double-launch
-      unlockAudio();
-      const t = e.changedTouches[0];
-      if (t) launch(t.clientX, t.clientY);
-    };
-    canvas.addEventListener("touchend", onTouch, { passive: false });
 
     const onResize = () => {
       w = canvas.width = window.innerWidth;
@@ -427,35 +309,18 @@ function Index() {
     return () => {
       cancelAnimationFrame(raf);
       canvas.removeEventListener("click", onClick);
-      canvas.removeEventListener("touchend", onTouch);
       window.removeEventListener("resize", onResize);
     };
   }, []);
 
   return (
     <main className="relative h-screen w-screen overflow-hidden bg-black font-serif text-white">
-      <audio
-        ref={fireAudioRef}
-        src={`${import.meta.env.BASE_URL}fire.mp3`}
-        loop
-        playsInline
-        preload="auto"
-        style={{ display: "none" }}
-      />
       <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
 
       {!revealed && (
         <div className="pointer-events-none absolute inset-0 flex items-end justify-center pb-24">
           <button
-            onClick={() => {
-              unlockAudio();
-              setRevealed(true);
-            }}
-            onTouchEnd={(e) => {
-              e.preventDefault();
-              unlockAudio();
-              setRevealed(true);
-            }}
+            onClick={() => setRevealed(true)}
             className="pointer-events-auto rounded-full border border-white/30 bg-white/5 px-8 py-3 text-sm tracking-[0.3em] backdrop-blur-md transition hover:bg-white/15"
           >
             Open the Gift
@@ -475,8 +340,22 @@ function Index() {
             )}
           </h1>
 
-          {signatureShown && (
+          <div className="mt-8 flex max-w-md flex-col gap-3">
+            {VERSES.map((line, i) => (
+              <p
+                key={i}
+                className={`text-sm italic text-white/80 md:text-base transition-all duration-700 ${
+                  i < versesShown ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
+                }`}
+              >
+                {line}
+              </p>
+            ))}
+          </div>
+
+          {versesShown >= VERSES.length && (
             <div className="mt-8 animate-fade-in">
+              <p className="text-base font-light text-white/90 md:text-lg">{WISH}</p>
               <p className="mt-6 text-xs italic tracking-wider text-white/60">— {YOUR_NAME}</p>
             </div>
           )}
