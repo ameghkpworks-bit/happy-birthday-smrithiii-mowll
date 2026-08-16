@@ -37,8 +37,6 @@ jobs:
 
       - name: Build website
         run: npm run build
-        env:
-          NITRO_PRESET: github-pages
 
       - name: Verify website output
         run: |
@@ -49,8 +47,14 @@ jobs:
           echo "======================================"
           echo "Checking for index.html..."
           echo "======================================"
-          test -f .output/public/index.html
+
+          if [ ! -f ".output/public/index.html" ]; then
+            echo "ERROR: index.html was not generated!"
+            exit 1
+          fi
+
           echo "SUCCESS: index.html exists!"
+          echo "======================================"
 
       - name: Setup GitHub Pages
         uses: actions/configure-pages@v5
@@ -66,3 +70,4 @@ jobs:
 
       - name: Show deployment URL
         run: echo "Website deployed to ${{ steps.deployment.outputs.page_url }}"
+
